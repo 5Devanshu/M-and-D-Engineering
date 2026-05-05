@@ -21,6 +21,11 @@ app.use(rateLimit({
   message:  { success: false, message: 'Too many requests' },
 }));
 
+// Health check routes
+app.get('/', (req, res) =>
+  res.json({ success: true, message: '🚀 M&D Engineers ERP API running', timestamp: new Date() })
+);
+
 app.get('/health', (req, res) =>
   res.json({ success: true, message: 'M&D Engineers ERP API running', timestamp: new Date() })
 );
