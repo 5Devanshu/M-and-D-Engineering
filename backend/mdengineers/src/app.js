@@ -10,6 +10,9 @@ const app = express();
 // Thank You
 app.use(cors());
 
+// ✅ Trust Railway proxy for accurate IP detection
+app.set('trust proxy', 1);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -19,6 +22,7 @@ app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   max:      1000,
   message:  { success: false, message: 'Too many requests' },
+  skip: (req) => req.path === '/health' || req.path === '/', // Skip health checks
 }));
 
 // Health check routes
