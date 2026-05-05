@@ -4,11 +4,11 @@ const env = {
   port:    process.env.PORT        || 8000,
   nodeEnv: process.env.NODE_ENV    || 'development',
   db: {
-    host:     process.env.DB_HOST     || 'localhost',
-    port:     parseInt(process.env.DB_PORT) || 5432,
-    user:     process.env.DB_USER     || 'postgres',
-    password: process.env.DB_PASSWORD || 'devonpostgresql5',
-    name:     process.env.DB_NAME     || 'Raut',
+    host:     process.env.DB_HOST     || undefined,
+    port:     parseInt(process.env.DB_PORT) || undefined,
+    user:     process.env.DB_USER     || undefined,
+    password: process.env.DB_PASSWORD || undefined,
+    name:     process.env.DB_NAME     || undefined,
   },
   jwt: {
     secret:         process.env.JWT_SECRET            || 'fallback_secret',
