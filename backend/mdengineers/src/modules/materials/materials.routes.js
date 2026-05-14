@@ -1,15 +1,15 @@
 const router = require('express').Router();
-const ctrl   = require('./masters.controller');
+const ctrl   = require('./materials.controller');
 const { authenticate }      = require('../../middlewares/auth.middleware');
 const { requireRole }       = require('../../middlewares/role.middleware');
 const { requirePermission } = require('../../middlewares/processAccess.middleware');
-const { validate, createChemicalSchema, updateRateSchema } = require('./masters.validation');
+const { validate, createMaterialSchema, updateRateSchema } = require('./materials.validation');
 
 router.use(authenticate);
 
 router.get( '/',                    requirePermission('masters','view'),  ctrl.getAll);
 router.get( '/:id',                 requirePermission('masters','view'),  ctrl.getById);
-router.post('/',  requireRole('admin','manager'), validate(createChemicalSchema), ctrl.create);
+router.post('/',  requireRole('admin','manager'), validate(createMaterialSchema), ctrl.create);
 router.put( '/:id', requireRole('admin','manager'), ctrl.update);
 router.delete('/:id', requireRole('admin','manager'), ctrl.delete);
 
