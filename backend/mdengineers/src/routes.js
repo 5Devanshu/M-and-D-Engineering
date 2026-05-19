@@ -10,5 +10,6 @@ router.use('/attendance',        require('./modules/attendance/attendance.routes
 router.use('/loans',             require('./modules/loans/loans.routes'));
 router.use('/salary',            require('./modules/salary/salary.routes'));
 router.use('/expenses',          require('./modules/expenses/expenses.routes'));
+router.use('/bills',             require('./modules/bills/bills.routes'));
 
 module.exports = router;
