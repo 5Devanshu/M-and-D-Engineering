@@ -10,6 +10,11 @@ router.use('/attendance',        require('./modules/attendance/attendance.routes
 router.use('/loans',             require('./modules/loans/loans.routes'));
 router.use('/salary',            require('./modules/salary/salary.routes'));
 router.use('/expenses',          require('./modules/expenses/expenses.routes'));
-router.use('/bms',               require('./routes/bmsIntegration.routes'));
+
+// ✅ M&D own clients
+router.use('/clients',           require('./modules/clients/clients.routes'));
+
+// ✅ BMS proxy — fixes the 500 on POST /api/bms/clients
+router.use('/bms',               require('./modules/bms/bms.routes'));
 
 module.exports = router;
