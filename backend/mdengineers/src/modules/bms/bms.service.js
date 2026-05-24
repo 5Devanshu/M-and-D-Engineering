@@ -1,37 +1,80 @@
 const axios = require('axios');
 
-const bmsClient = axios.create({
-  baseURL: process.env.BMS_API_URL,
-  headers: {
-    'Content-Type':  'application/json',
-    'X-API-Key':     process.env.BMS_API_KEY,
-    'X-API-Secret':  process.env.BMS_API_SECRET,
-  },
-  timeout: 15000,
+const BMS_BASE = (process.env.BMS_API_URL || 'https://app.octabms.com/api').replace(/\/$/, '');
+
+let _token     = null;
+let _expiresAt = 0;
+
+const http = axios.create({
+  baseURL: BMS_BASE,
+  timeout: 30_000,
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Log every BMS call for debugging
-bmsClient.interceptors.request.use((config) => {
-  console.log(`📡 BMS → ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
-  return config;
-});
-
-bmsClient.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    console.error('❌ BMS Error:', err.response?.status, err.response?.data);
-    return Promise.reject(err);
-  }
-);
-
-const proxyToBMS = async ({ method, path, params, data }) => {
-  const res = await bmsClient.request({
-    method,
-    url:    `/v1${path}`,
-    params,
-    data,
-  });
-  return res.data;
+const parseExpiry = (jwt) => {
+  try {
+    const p = JSON.parse(Buffer.from(jwt.split('.')[1], 'base64').toString());
+    return p.exp ? p.exp * 1000 : Date.now() + 23 * 3_600_000;
+  } catch { return Date.now() + 23 * 3_600_000; }
 };
 
-module.exports = { proxyToBMS };
+const getToken = async () => {
+  if (_token && Date.now() < _expiresAt - 300_000) return _token;
+  console.log(`🔐 BMS: authenticating as ${process.env.BMS_EMAIL}…`);
+  const res   = await http.post('/v1/auth/login', {
+    email:    process.env.BMS_EMAIL,
+    password: process.env.BMS_PASSWORD,
+  });
+  const data  = res.data?.data;
+  _token      = data.access_token;
+  _expiresAt  = parseExpiry(_token);
+  console.log('✅ BMS: token acquired, expires', new Date(_expiresAt).toISOString());
+  return _token;
+};
+
+// ── JSON proxy (existing) ────────────────────────────────────────────────────
+const proxyToBMS = async ({ method, path, params, data }, retry = true) => {
+  const token = await getToken();
+  try {
+    const res = await http.request({
+      method,
+      url:    `/v1${path}`,
+      params,
+      data,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  } catch (err) {
+    if (err.response?.status === 401 && retry) {
+      _token = null; _expiresAt = 0;
+      return proxyToBMS({ method, path, params, data }, false);
+    }
+    throw err;
+  }
+};
+
+// ── Binary/stream proxy for PDF ───────────────────────────────────────────────
+const streamFromBMS = async (path, params, retry = true) => {
+  const token = await getToken();
+  try {
+    const res = await http.get(`/v1${path}`, {
+      params,
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'stream',   // ← key: don't parse, stream raw bytes
+      timeout: 30_000,
+    });
+    return {
+      stream:      res.data,
+      contentType: res.headers['content-type'] || 'application/pdf',
+      disposition: res.headers['content-disposition'] || 'inline',
+    };
+  } catch (err) {
+    if (err.response?.status === 401 && retry) {
+      _token = null; _expiresAt = 0;
+      return streamFromBMS(path, params, false);
+    }
+    throw err;
+  }
+};
+
+module.exports = { proxyToBMS, streamFromBMS };
